@@ -144,7 +144,7 @@ const wallet = new HDWallet(mnemonic);
 ```typescript
 import { Address, CoinType } from 'expo-trust-core';
 
-// Bitcoin address
+// Bitcoin address (account 0)
 const btcAddress = await Address.generate(mnemonic, CoinType.Bitcoin, 0);
 
 // Ethereum address (works for all EVM chains)
@@ -152,6 +152,9 @@ const ethAddress = await Address.generate(mnemonic, CoinType.Ethereum, 0);
 
 // Solana address
 const solAddress = await Address.generate(mnemonic, CoinType.Solana, 0);
+
+// Dogecoin address
+const dogeAddress = await Address.generate(mnemonic, CoinType.Dogecoin, 0);
 
 // Multiple accounts from same mnemonic
 const ethAccount1 = await Address.generate(mnemonic, CoinType.Ethereum, 1);
