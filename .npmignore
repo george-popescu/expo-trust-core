@@ -1,0 +1,23 @@
+# Build artifacts
+android/build/
+android/.gradle/
+ios/build/
+ios/Pods/
+
+# Development files
+FINAL_REVIEW.md
+.DS_Store
+*.log
+
+# Example/test files
+example/
+tests/
+*.test.ts
+*.test.tsx
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+

@@ -1,0 +1,62 @@
+{
+  "name": "expo-trust-core",
+  "version": "0.4.0",
+  "description": "Multi-blockchain wallet SDK for React Native and Expo applications. Built on Trust Wallet Core with comprehensive blockchain integration helpers for Bitcoin, Ethereum, Solana, and Dogecoin.",
+  "main": "index.ts",
+  "types": "src/ExpoTrustCore.types.ts",
+  "expo-module": {
+    "platforms": ["android", "ios"]
+  },
+  "keywords": [
+    "expo",
+    "react-native",
+    "wallet",
+    "blockchain",
+    "crypto",
+    "bitcoin",
+    "ethereum",
+    "solana",
+    "dogecoin",
+    "trust-wallet",
+    "web3",
+    "bip39",
+    "bip44",
+    "bip84",
+    "hd-wallet",
+    "erc20",
+    "spl-token",
+    "eip712",
+    "eip191",
+    "transaction-signing"
+  ],
+  "author": "George Popescu <cosmin.popescu21@gmail.com>",
+  "license": "MIT",
+  "homepage": "https://github.com/george-popescu/trust-wallet-sdk#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/george-popescu/trust-wallet-sdk.git"
+  },
+  "bugs": {
+    "url": "https://github.com/george-popescu/trust-wallet-sdk/issues"
+  },
+  "peerDependencies": {
+    "react": "*",
+    "react-native": "*",
+    "ethers": "^6.13.0",
+    "@solana/web3.js": "^1.95.0",
+    "react-native-get-random-values": ">=1.11.0",
+    "fast-text-encoding": ">=1.0.6",
+    "buffer": ">=6.0.3"
+  },
+  "peerDependenciesMeta": {
+    "react-native-get-random-values": {
+      "optional": false
+    },
+    "fast-text-encoding": {
+      "optional": false
+    },
+    "buffer": {
+      "optional": false
+    }
+  }
+}

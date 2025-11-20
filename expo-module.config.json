@@ -1,0 +1,9 @@
+{
+  "platforms": ["apple", "android", "web"],
+  "apple": {
+    "modules": ["ExpoTrustCoreModule"]
+  },
+  "android": {
+    "modules": ["expo.modules.trustcore.ExpoTrustCoreModule"]
+  }
+}
