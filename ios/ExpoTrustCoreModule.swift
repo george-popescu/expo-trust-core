@@ -354,6 +354,46 @@ public class ExpoTrustCoreModule: Module {
         "coinType": coinType
       ]
     }
+
+    /**
+     * Sign raw transaction hash (advanced - for custom transaction building)
+     */
+    Function("signRawTransaction") { (mnemonic: String, txHash: String, coinType: Int, accountIndex: Int?) -> String in
+      let accIndex = accountIndex ?? 0
+      
+      guard let wallet = HDWallet(mnemonic: mnemonic, passphrase: ""),
+            let coin = CoinType(rawValue: UInt32(exactly: coinType) ?? 0) else {
+        throw NSError(domain: "ExpoTrustCore", code: 11, userInfo: [
+          NSLocalizedDescriptionKey: "Failed to create wallet"
+        ])
+      }
+      
+      guard let hashData = Data(hexString: txHash.hasPrefix("0x") ? String(txHash.dropFirst(2)) : txHash) else {
+        throw NSError(domain: "ExpoTrustCore", code: 11, userInfo: [
+          NSLocalizedDescriptionKey: "Invalid transaction hash format"
+        ])
+      }
+      
+      // Build derivation path
+      let derivationPath: String
+      switch coin {
+      case .bitcoin:
+        derivationPath = "m/84'/0'/\(accIndex)'/0/0"
+      case .ethereum:
+        derivationPath = "m/44'/60'/\(accIndex)'/0/0"
+      case .solana:
+        derivationPath = "m/44'/501'/\(accIndex)'/0'"
+      case .dogecoin:
+        derivationPath = "m/44'/3'/\(accIndex)'/0/0"
+      default:
+        derivationPath = "m/44'/\(coin.rawValue)/\(accIndex)'/0/0"
+      }
+      
+      let privateKey = wallet.getKey(coin: coin, derivationPath: derivationPath)
+      let signature = privateKey.sign(digest: hashData, curve: .secp256k1)!
+      
+      return signature.hexString
+    }
   }
   
   // MARK: - Transaction Signing Helpers

@@ -1,7 +1,7 @@
 {
   "name": "expo-trust-core",
-  "version": "0.4.2",
-  "description": "Multi-blockchain wallet SDK for React Native and Expo applications. Built on Trust Wallet Core with comprehensive blockchain integration helpers for Bitcoin, Ethereum, Solana, and Dogecoin.",
+  "version": "1.0.0",
+  "description": "Production-ready multi-blockchain wallet SDK for React Native and Expo. Built on Trust Wallet Core with native transaction signing (Ethereum, Solana, Bitcoin), EIP-712 support, and comprehensive blockchain helpers.",
   "main": "index.ts",
   "types": "index.ts",
   "expo-module": {

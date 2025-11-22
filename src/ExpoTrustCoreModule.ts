@@ -8,6 +8,7 @@ declare class ExpoTrustCoreModule extends NativeModule {
   getAddresses(mnemonic: string, coinTypes: number[], accountIndex?: number): string[];
   validateAddress(address: string, coinType: number): boolean;
   signTransaction(mnemonic: string, coinType: number, input: string, accountIndex?: number): Promise<string>;
+  signRawTransaction(mnemonic: string, txHash: string, coinType: number, accountIndex?: number): string;
   signMessage(mnemonic: string, message: string, coinType: number): string;
   signTypedData(mnemonic: string, typedDataJSON: string, coinType: number): string;
   getPrivateKey(mnemonic: string, coinType: number, accountIndex?: number): string;

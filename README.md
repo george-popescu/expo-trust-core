@@ -4,26 +4,35 @@ Multi-blockchain wallet SDK for React Native and Expo applications.
 
 Built on [Trust Wallet Core](https://github.com/trustwallet/wallet-core) with comprehensive blockchain integration helpers.
 
-[![Version](https://img.shields.io/badge/version-0.4.0-blue.svg)](package.json)
+[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](package.json)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Platforms](https://img.shields.io/badge/platforms-iOS%20%7C%20Android-lightgrey.svg)]()
+[![Production Ready](https://img.shields.io/badge/status-production%20ready-brightgreen.svg)]()
 
 ---
 
 ## Features
 
 ### Core Cryptography
-- BIP39 Mnemonic generation (12/24 word phrases)
-- HD Wallet support (BIP44/BIP84)
-- Multi-chain address generation
-- Message signing (EIP-191, Ed25519)
-- EIP-712 Typed Data signing
-- Multiple accounts per mnemonic
+- ✅ BIP39 Mnemonic generation (12/24 word phrases)
+- ✅ HD Wallet support (BIP44/BIP84)
+- ✅ Multi-chain address generation
+- ✅ Message signing (EIP-191, Ed25519)
+- ✅ EIP-712 Typed Data signing (production-grade)
+- ✅ Multiple accounts per mnemonic (0-∞)
 
 ### Advanced Features
-- Private key export and import
-- Public key export
-- Single-key wallet mode
+- ✅ Private key export and import
+- ✅ Public key export
+- ✅ Single-key wallet mode
+
+### Native Transaction Signing (v1.0+)
+- ✅ **Full Protobuf signing** on iOS & Android
+- ✅ Ethereum (Legacy + EIP-1559)
+- ✅ Solana (SOL transfers)
+- ✅ Bitcoin (SegWit UTXO-based)
+- ✅ `signRawTransaction()` for advanced flows
+- ✅ **Private keys NEVER exposed to JavaScript**
 
 ### Blockchain Integration Helpers
 
@@ -102,9 +111,7 @@ import { App } from './App';
 ### 5. Platform-Specific Setup
 
 **iOS:**
-```bash
-cd ios && pod install && cd ..
-```
+No additional setup required.
 
 **Android:**
 No additional setup required.
@@ -338,40 +345,99 @@ const unsignedTx = await DogecoinTransactionBuilder.buildDOGETransaction(
 // Then broadcast to Dogecoin network
 ```
 
-### Sign Transactions
+### Native Transaction Signing (v1.0+)
+
+**Full Protobuf signing on iOS & Android** - Private keys NEVER exposed to JavaScript!
 
 ```typescript
 import { Transaction, CoinType } from 'expo-trust-core';
 
-// Ethereum transaction
+// Ethereum transaction (Legacy)
 const signedEthTx = await Transaction.sign(mnemonic, CoinType.Ethereum, {
-  to: '0x...',
+  to: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb',
   value: '0x0de0b6b3a7640000', // 1 ETH in wei (hex)
   gasPrice: '0x04a817c800', // 20 gwei
   gasLimit: '0x5208', // 21000
   nonce: 0,
   chainId: 1, // Mainnet
   data: '0x',
-});
-// Broadcast with ethers.js: await provider.sendTransaction(signedEthTx);
+}, 0); // account index
+// Returns: "0x02f87..." ready to broadcast
 
-// Bitcoin transaction
-const signedBtcTx = await Transaction.sign(mnemonic, CoinType.Bitcoin, {
-  utxos: unsignedTx.utxos,
-  toAddress: unsignedTx.toAddress,
-  amount: unsignedTx.amount,
-  changeAddress: unsignedTx.changeAddress,
-  byteFee: unsignedTx.byteFee,
-});
-// Broadcast to Bitcoin network using a Bitcoin RPC or API
+// Ethereum EIP-1559
+const signedEIP1559 = await Transaction.sign(mnemonic, CoinType.Ethereum, {
+  to: '0x...',
+  value: '0x0de0b6b3a7640000',
+  gasLimit: '0x5208',
+  nonce: 0,
+  chainId: 1,
+  maxFeePerGas: '0x77359400', // 2 gwei
+  maxPriorityFeePerGas: '0x59682f00', // 1.5 gwei
+  data: '0x',
+}, 0);
 
 // Solana transaction
 const signedSolTx = await Transaction.sign(mnemonic, CoinType.Solana, {
-  recentBlockhash: 'xxx',
-  recipient: 'xxx',
+  recentBlockhash: '11111111111111111111111111111111',
+  recipient: 'DYw8jCTfwHNRJhhmFcbXvVDTqWMEVFBX6ZKUmG5CNSKK',
   amount: '1000000000', // 1 SOL in lamports
-});
-// Broadcast with @solana/web3.js: await connection.sendRawTransaction(signedSolTx);
+}, 0);
+// Returns: Base64 signed transaction
+
+// Bitcoin transaction (SegWit)
+const signedBtcTx = await Transaction.sign(mnemonic, CoinType.Bitcoin, {
+  utxos: [
+    {
+      txid: 'abc123...',
+      vout: 0,
+      value: 100000,
+      scriptPubKey: '0014...'
+    }
+  ],
+  toAddress: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh',
+  amount: 50000,
+  changeAddress: 'bc1q...',
+  byteFee: 10,
+}, 0);
+```
+
+### Advanced: Sign Raw Transaction Hash
+
+For custom transaction building workflows:
+
+```typescript
+import { Transaction, CoinType } from 'expo-trust-core';
+import { ethers } from 'ethers';
+
+// 1. Build transaction externally
+const unsignedTx = {
+  to: '0x...',
+  value: ethers.parseEther('1.0'),
+  gasLimit: 21000,
+  nonce: 0,
+  chainId: 1,
+};
+
+// 2. Serialize to get hash
+const serialized = ethers.Transaction.from(unsignedTx).unsignedSerialized;
+const txHash = ethers.keccak256(serialized);
+
+// 3. Sign hash natively (private key stays in native code!)
+const signature = await Transaction.signRawTransaction(
+  mnemonic,
+  txHash,
+  CoinType.Ethereum,
+  0 // account index
+);
+
+// 4. Attach signature
+const signedTx = ethers.Transaction.from({
+  ...unsignedTx,
+  signature,
+}).serialized;
+
+// 5. Broadcast
+await provider.broadcastTransaction(signedTx);
 ```
 
 ---

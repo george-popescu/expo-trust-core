@@ -33,6 +33,10 @@ if (useManagedAndroidSdkVersions) {
 
 dependencies {
   implementation files('libs/wallet-core.aar')
+  implementation files('libs/wallet-core-proto-4.4.1.jar')
+  
+  // Protobuf Lite runtime (required for Protocol Buffers support)
+  implementation 'com.google.protobuf:protobuf-javalite:3.25.1'
 }
 
 android {

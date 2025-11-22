@@ -8,6 +8,13 @@ import wallet.core.jni.Mnemonic
 import wallet.core.jni.Hash
 import wallet.core.jni.Curve
 import wallet.core.jni.PrivateKey
+import wallet.core.java.AnySigner
+import wallet.core.jni.BitcoinScript
+import wallet.core.jni.proto.Bitcoin
+import wallet.core.jni.proto.Ethereum
+import wallet.core.jni.proto.Solana
+import wallet.core.jni.proto.Common
+import com.google.protobuf.ByteString
 
 class ExpoTrustCoreModule : Module() {
   
@@ -136,7 +143,7 @@ class ExpoTrustCoreModule : Module() {
     }
 
     /**
-     * Sign a transaction
+     * Sign a transaction using Protocol Buffers
      */
     AsyncFunction("signTransaction") { mnemonic: String, coinType: Int, input: String, accountIndex: Int? ->
       try {
@@ -267,7 +274,7 @@ class ExpoTrustCoreModule : Module() {
       try {
         val coin = CoinType.createFromValue(coinType)
         val keyData = hexStringToByteArray(privateKeyHex)
-        val privateKey = wallet.core.jni.PrivateKey(keyData)
+        val privateKey = PrivateKey(keyData)
         
         val address = coin.deriveAddress(privateKey)
         val publicKey = privateKey.getPublicKeySecp256k1(true)
@@ -281,9 +288,30 @@ class ExpoTrustCoreModule : Module() {
         throw Exception("Failed to import from private key: ${e.message}")
       }
     }
+
+    /**
+     * Sign raw transaction hash (advanced - for custom transaction building)
+     */
+    Function("signRawTransaction") { mnemonic: String, txHash: String, coinType: Int, accountIndex: Int? ->
+      try {
+        val accIndex = accountIndex ?: 0
+        val wallet = HDWallet(mnemonic, "")
+        val coin = CoinType.createFromValue(coinType)
+        
+        val derivationPath = getDerivationPath(coin, accIndex)
+        val privateKey = wallet.getKey(coin, derivationPath)
+        
+        val hashBytes = hexStringToByteArray(txHash)
+        val signature = privateKey.sign(hashBytes, Curve.SECP256K1)
+        
+        signature.toHexString()
+      } catch (e: Exception) {
+        throw Exception("Failed to sign raw transaction: ${e.message}")
+      }
+    }
   }
   
-  // MARK: Transaction Signing Helpers
+  // MARK: Transaction Signing Helper Functions
   
   /**
    * Sign Ethereum transaction using Protocol Buffers
@@ -308,44 +336,44 @@ class ExpoTrustCoreModule : Module() {
     val isEIP1559 = maxFeePerGas != null && maxPriorityFeePerGas != null
     
     // Convert hex strings to ByteString
-    val valueBytes = com.google.protobuf.ByteString.copyFrom(hexStringToByteArray(value))
-    val gasPriceBytes = com.google.protobuf.ByteString.copyFrom(hexStringToByteArray(gasPrice))
-    val gasLimitBytes = com.google.protobuf.ByteString.copyFrom(hexStringToByteArray(gasLimit))
-    val chainIdBytes = com.google.protobuf.ByteString.copyFrom(byteArrayOf(chainId.toByte()))
-    val nonceBytes = com.google.protobuf.ByteString.copyFrom(byteArrayOf(nonce.toByte()))
-    val dataBytes = com.google.protobuf.ByteString.copyFrom(hexStringToByteArray(data))
+    val valueBytes = ByteString.copyFrom(hexStringToByteArray(value))
+    val gasPriceBytes = ByteString.copyFrom(hexStringToByteArray(gasPrice))
+    val gasLimitBytes = ByteString.copyFrom(hexStringToByteArray(gasLimit))
+    val chainIdBytes = ByteString.copyFrom(byteArrayOf(chainId.toByte()))
+    val nonceBytes = ByteString.copyFrom(byteArrayOf(nonce.toByte()))
+    val dataBytes = ByteString.copyFrom(hexStringToByteArray(data))
     
     // Build Ethereum SigningInput
-    val signingInputBuilder = wallet.core.jni.proto.Ethereum.SigningInput.newBuilder()
+    val signingInputBuilder = Ethereum.SigningInput.newBuilder()
       .setChainId(chainIdBytes)
       .setNonce(nonceBytes)
       .setGasLimit(gasLimitBytes)
       .setToAddress(toAddress)
-      .setPrivateKey(com.google.protobuf.ByteString.copyFrom(privateKey.data()))
+      .setPrivateKey(ByteString.copyFrom(privateKey.data()))
     
     if (isEIP1559 && maxFeePerGas != null && maxPriorityFeePerGas != null) {
       // EIP-1559 transaction
-      val maxFeeBytes = com.google.protobuf.ByteString.copyFrom(hexStringToByteArray(maxFeePerGas))
-      val maxPriorityBytes = com.google.protobuf.ByteString.copyFrom(hexStringToByteArray(maxPriorityFeePerGas))
+      val maxFeeBytes = ByteString.copyFrom(hexStringToByteArray(maxFeePerGas))
+      val maxPriorityBytes = ByteString.copyFrom(hexStringToByteArray(maxPriorityFeePerGas))
       
       signingInputBuilder
-        .setTxMode(wallet.core.jni.proto.Ethereum.TransactionMode.Enveloped)
+        .setTxMode(Ethereum.TransactionMode.Enveloped)
         .setMaxFeePerGas(maxFeeBytes)
         .setMaxInclusionFeePerGas(maxPriorityBytes)
     } else {
       // Legacy transaction
       signingInputBuilder
-        .setTxMode(wallet.core.jni.proto.Ethereum.TransactionMode.Legacy)
+        .setTxMode(Ethereum.TransactionMode.Legacy)
         .setGasPrice(gasPriceBytes)
     }
     
     // Set transaction type
-    val transfer = wallet.core.jni.proto.Ethereum.Transaction.Transfer.newBuilder()
+    val transfer = Ethereum.Transaction.Transfer.newBuilder()
       .setAmount(valueBytes)
       .setData(dataBytes)
       .build()
     
-    val transaction = wallet.core.jni.proto.Ethereum.Transaction.newBuilder()
+    val transaction = Ethereum.Transaction.newBuilder()
       .setTransfer(transfer)
       .build()
     
@@ -353,9 +381,9 @@ class ExpoTrustCoreModule : Module() {
     
     // Sign transaction
     val signingInput = signingInputBuilder.build()
-    val output = wallet.core.jni.AnySigner.sign(signingInput, coin, wallet.core.jni.proto.Ethereum.SigningOutput.parser())
+    val output = AnySigner.sign(signingInput, coin, Ethereum.SigningOutput.parser())
     
-    if (output.error != wallet.core.jni.proto.Common.SigningError.OK) {
+    if (output.error != Common.SigningError.OK) {
       throw Exception("Signing failed: ${output.errorMessage}")
     }
     
@@ -378,22 +406,22 @@ class ExpoTrustCoreModule : Module() {
     val amount = inputJSON.getString("amount").toLong()
     
     // Build simple SOL transfer
-    val transfer = wallet.core.jni.proto.Solana.Transfer.newBuilder()
+    val transfer = Solana.Transfer.newBuilder()
       .setRecipient(recipient)
       .setValue(amount)
       .build()
     
-    val signingInput = wallet.core.jni.proto.Solana.SigningInput.newBuilder()
-      .setPrivateKey(com.google.protobuf.ByteString.copyFrom(privateKey.data()))
+    val signingInput = Solana.SigningInput.newBuilder()
+      .setPrivateKey(ByteString.copyFrom(privateKey.data()))
       .setRecentBlockhash(recentBlockhash)
       .setSender(senderAddress)
       .setTransferTransaction(transfer)
-      .setTxEncoding(wallet.core.jni.proto.Solana.Encoding.Base64)
+      .setTxEncoding(Solana.Encoding.Base64)
       .build()
     
-    val output = wallet.core.jni.AnySigner.sign(signingInput, coin, wallet.core.jni.proto.Solana.SigningOutput.parser())
+    val output = AnySigner.sign(signingInput, coin, Solana.SigningOutput.parser())
     
-    if (output.error != wallet.core.jni.proto.Common.SigningError.OK) {
+    if (output.error != Common.SigningError.OK) {
       throw Exception("Signing failed: ${output.errorMessage}")
     }
     
@@ -422,7 +450,7 @@ class ExpoTrustCoreModule : Module() {
     val changeAddress = inputJSON.optString("changeAddress", fromAddress)
     
     // Build UTXOs
-    val utxos = mutableListOf<wallet.core.jni.proto.Bitcoin.UnspentTransaction>()
+    val utxos = mutableListOf<Bitcoin.UnspentTransaction>()
     for (i in 0 until utxosArray.length()) {
       val utxoJSON = utxosArray.getJSONObject(i)
       val txid = utxoJSON.getString("txid")
@@ -433,16 +461,16 @@ class ExpoTrustCoreModule : Module() {
       val txidBytes = hexStringToByteArray(txid).reversedArray()  // Bitcoin uses reversed hash
       val scriptBytes = hexStringToByteArray(scriptPubKey)
       
-      val outPoint = wallet.core.jni.proto.Bitcoin.OutPoint.newBuilder()
-        .setHash(com.google.protobuf.ByteString.copyFrom(txidBytes))
+      val outPoint = Bitcoin.OutPoint.newBuilder()
+        .setHash(ByteString.copyFrom(txidBytes))
         .setIndex(vout)
         .setSequence(0xFFFFFFFF.toInt())
         .build()
       
-      val utxo = wallet.core.jni.proto.Bitcoin.UnspentTransaction.newBuilder()
+      val utxo = Bitcoin.UnspentTransaction.newBuilder()
         .setOutPoint(outPoint)
         .setAmount(value)
-        .setScript(com.google.protobuf.ByteString.copyFrom(scriptBytes))
+        .setScript(ByteString.copyFrom(scriptBytes))
         .build()
       
       utxos.add(utxo)
@@ -453,20 +481,20 @@ class ExpoTrustCoreModule : Module() {
     }
     
     // Build signing input
-    val signingInput = wallet.core.jni.proto.Bitcoin.SigningInput.newBuilder()
-      .setHashType(wallet.core.jni.BitcoinScript.hashTypeForCoin(coin))
+    val signingInput = Bitcoin.SigningInput.newBuilder()
+      .setHashType(BitcoinScript.hashTypeForCoin(coin))
       .setAmount(amount)
       .setByteFee(byteFee)
       .setToAddress(toAddress)
       .setChangeAddress(changeAddress)
-      .addPrivateKey(com.google.protobuf.ByteString.copyFrom(privateKey.data()))
+      .addPrivateKey(ByteString.copyFrom(privateKey.data()))
       .addAllUtxo(utxos)
       .build()
     
     // Sign transaction
-    val output = wallet.core.jni.AnySigner.sign(signingInput, coin, wallet.core.jni.proto.Bitcoin.SigningOutput.parser())
+    val output = AnySigner.sign(signingInput, coin, Bitcoin.SigningOutput.parser())
     
-    if (output.error != wallet.core.jni.proto.Common.SigningError.OK) {
+    if (output.error != Common.SigningError.OK) {
       throw Exception("Signing failed: ${output.errorMessage}")
     }
     
