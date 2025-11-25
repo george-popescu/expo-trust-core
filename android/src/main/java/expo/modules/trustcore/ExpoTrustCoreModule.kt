@@ -169,10 +169,11 @@ class ExpoTrustCoreModule : Module() {
     /**
      * Sign a message (personal_sign for Ethereum, raw sign for Solana)
      */
-    Function("signMessage") { mnemonic: String, message: String, coinType: Int ->
+    Function("signMessage") { mnemonic: String, message: String, coinType: Int, accountIndex: Int? ->
       try {
         val wallet = HDWallet(mnemonic, "")
         val coin = CoinType.createFromValue(coinType)
+        val index = accountIndex ?: 0
         
         when (coin) {
           CoinType.ETHEREUM -> {
@@ -182,14 +183,14 @@ class ExpoTrustCoreModule : Module() {
             val prefixedMessage = prefix.toByteArray(Charsets.UTF_8) + messageBytes
             val hash = Hash.keccak256(prefixedMessage)
             
-            val privateKey = wallet.getKey(coin, "m/44'/60'/0'/0/0")
+            val privateKey = wallet.getKey(coin, "m/44'/60'/0'/0/$index")
             val signature = privateKey.sign(hash, Curve.SECP256K1)
             
             signature.toHexString()
           }
           CoinType.SOLANA -> {
             val messageBytes = message.toByteArray(Charsets.UTF_8)
-            val privateKey = wallet.getKey(coin, "m/44'/501'/0'/0'")
+            val privateKey = wallet.getKey(coin, "m/44'/501'/$index'/0'")
             val signature = privateKey.sign(messageBytes, Curve.ED25519)
             
             signature.toHexString()
@@ -206,7 +207,7 @@ class ExpoTrustCoreModule : Module() {
     /**
      * Sign EIP-712 typed data (Ethereum only)
      */
-    Function("signTypedData") { mnemonic: String, typedDataJSON: String, coinType: Int ->
+    Function("signTypedData") { mnemonic: String, typedDataJSON: String, coinType: Int, accountIndex: Int? ->
       try {
         // Only Ethereum supports EIP-712
         val coin = CoinType.createFromValue(coinType)
@@ -215,12 +216,13 @@ class ExpoTrustCoreModule : Module() {
         }
         
         val wallet = HDWallet(mnemonic, "")
+        val index = accountIndex ?: 0
         
         // Encode using EIP-712 (EIP-712 compliant implementation)
         val hash = EIP712Encoder.encodeAndHash(typedDataJSON)
         
         // Sign the hash
-        val privateKey = wallet.getKey(coin, "m/44'/60'/0'/0/0")
+        val privateKey = wallet.getKey(coin, "m/44'/60'/0'/0/$index")
         val signature = privateKey.sign(hash, Curve.SECP256K1)
         
         signature.toHexString()

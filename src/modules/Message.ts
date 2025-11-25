@@ -10,18 +10,20 @@ export class Message {
    * @param mnemonic - The wallet mnemonic
    * @param message - The message to sign
    * @param coinType - The coin type (Ethereum or Solana)
+   * @param accountIndex - HD account index (default: 0)
    * @returns Signature as hex string
    */
   static async sign(
     mnemonic: string,
     message: string,
-    coinType: CoinType
+    coinType: CoinType,
+    accountIndex: number = 0
   ): Promise<string> {
     if (coinType !== CoinType.Ethereum && coinType !== CoinType.Solana) {
       throw new Error('Message signing only supported for Ethereum and Solana');
     }
     
-    return WalletCore.signMessage(mnemonic, message, coinType);
+    return WalletCore.signMessage(mnemonic, message, coinType, accountIndex);
   }
 
   /**
@@ -30,9 +32,10 @@ export class Message {
    */
   static async signEthereumMessage(
     mnemonic: string,
-    message: string
+    message: string,
+    accountIndex: number = 0
   ): Promise<string> {
-    return this.sign(mnemonic, message, CoinType.Ethereum);
+    return this.sign(mnemonic, message, CoinType.Ethereum, accountIndex);
   }
 
   /**
@@ -40,9 +43,10 @@ export class Message {
    */
   static async signSolanaMessage(
     mnemonic: string,
-    message: string
+    message: string,
+    accountIndex: number = 0
   ): Promise<string> {
-    return this.sign(mnemonic, message, CoinType.Solana);
+    return this.sign(mnemonic, message, CoinType.Solana, accountIndex);
   }
 
   /**

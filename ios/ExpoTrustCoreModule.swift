@@ -182,7 +182,7 @@ public class ExpoTrustCoreModule: Module {
     /**
      * Sign a message (personal_sign for Ethereum, raw sign for Solana)
      */
-    Function("signMessage") { (mnemonic: String, message: String, coinType: Int) -> String in
+    Function("signMessage") { (mnemonic: String, message: String, coinType: Int, accountIndex: Int?) -> String in
       guard let wallet = HDWallet(mnemonic: mnemonic, passphrase: "") else {
         throw NSError(domain: "ExpoTrustCore", code: 6, userInfo: [
           NSLocalizedDescriptionKey: "Failed to create wallet"
@@ -195,6 +195,7 @@ public class ExpoTrustCoreModule: Module {
         ])
       }
       
+      let index = accountIndex ?? 0
       let messageData = Data(message.utf8)
       
       switch coin {
@@ -204,13 +205,13 @@ public class ExpoTrustCoreModule: Module {
         let prefixedMessage = Data(prefix.utf8) + messageData
         let hash = Hash.keccak256(data: prefixedMessage)
         
-        let privateKey = wallet.getKey(coin: coin, derivationPath: "m/44'/60'/0'/0/0")
+        let privateKey = wallet.getKey(coin: coin, derivationPath: "m/44'/60'/0'/0/\(index)")
         let signature = privateKey.sign(digest: hash, curve: .secp256k1)!
         
         return signature.hexString
         
       case .solana:
-        let privateKey = wallet.getKey(coin: coin, derivationPath: "m/44'/501'/0'/0'")
+        let privateKey = wallet.getKey(coin: coin, derivationPath: "m/44'/501'/\(index)'/0'")
         let signature = privateKey.sign(digest: messageData, curve: .ed25519)!
         
         return signature.hexString
@@ -225,7 +226,7 @@ public class ExpoTrustCoreModule: Module {
     /**
      * Sign EIP-712 typed data (Ethereum only)
      */
-    Function("signTypedData") { (mnemonic: String, typedDataJSON: String, coinType: Int) -> String in
+    Function("signTypedData") { (mnemonic: String, typedDataJSON: String, coinType: Int, accountIndex: Int?) -> String in
       // Only Ethereum supports EIP-712
       guard coinType == CoinType.ethereum.rawValue else {
         throw NSError(domain: "ExpoTrustCore", code: 7, userInfo: [
@@ -239,6 +240,8 @@ public class ExpoTrustCoreModule: Module {
         ])
       }
       
+      let index = accountIndex ?? 0
+      
       // Parse typed data JSON
       guard let jsonData = typedDataJSON.data(using: .utf8),
             let typedData = try? JSONSerialization.jsonObject(with: jsonData) as? [String: Any] else {
@@ -251,7 +254,7 @@ public class ExpoTrustCoreModule: Module {
       let hash = try EIP712Encoder.encodeAndHash(typedData: typedData)
       
       // Sign the hash
-      let privateKey = wallet.getKey(coin: .ethereum, derivationPath: "m/44'/60'/0'/0/0")
+      let privateKey = wallet.getKey(coin: .ethereum, derivationPath: "m/44'/60'/0'/0/\(index)")
       let signature = privateKey.sign(digest: hash, curve: .secp256k1)!
       
       return signature.hexString
