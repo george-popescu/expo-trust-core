@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.3] - 2025-11-25
+
+### Fixed
+- ✅ **WalletConnect-safe Ethereum signatures**
+  - Detect hex vs UTF-8 payloads and apply the EIP-191 prefix natively on iOS and Android
+  - Normalize `v` to 27/28 and always return `0x`-prefixed signatures for `personal_sign`, `eth_sign`, and EIP-712
+  - Matches Trust Wallet reference behavior so dApps validate signatures as expected
+
+### Changed
+- `Message.ts` now normalizes hex payloads before bridging to native
+- Documentation updated to highlight the new `expo-trust-core@1.0.3` requirement for WalletConnect
+
+## [1.0.2] - 2025-11-25
+
+### Added
+- ✅ **HD Account Index support for TypedData and Transaction modules:**
+  - `TypedData.sign()` now accepts optional `accountIndex` parameter
+  - `Transaction.sign()` now accepts optional `accountIndex` parameter
+  - `Transaction.buildAndSign()` now accepts optional `accountIndex` parameter
+  - `Transaction.signRawHash()` new method for signing raw transaction hashes
+  - Backwards compatible: defaults to account 0 if not specified
+
+### Fixed
+- TypedData and Transaction modules now properly expose accountIndex parameter from native module
+
 ## [1.0.1] - 2025-11-25
 
 ### Added

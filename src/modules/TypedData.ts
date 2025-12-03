@@ -36,14 +36,18 @@ export class TypedData {
    * Sign EIP-712 typed data (Ethereum only)
    * @param mnemonic - The wallet mnemonic
    * @param typedData - EIP-712 structured data
+   * @param accountIndex - HD account index (default: 0)
    * @returns Signature as hex string
    */
   static async sign(
     mnemonic: string,
-    typedData: EIP712TypedData
+    typedData: EIP712TypedData | string,
+    accountIndex: number = 0
   ): Promise<string> {
-    const typedDataString = JSON.stringify(typedData);
-    return WalletCore.signTypedData(mnemonic, typedDataString, CoinType.Ethereum);
+    const typedDataString = typeof typedData === 'string' 
+      ? typedData 
+      : JSON.stringify(typedData);
+    return WalletCore.signTypedData(mnemonic, typedDataString, CoinType.Ethereum, accountIndex);
   }
 
   /**
@@ -92,4 +96,3 @@ export class TypedData {
     };
   }
 }
-

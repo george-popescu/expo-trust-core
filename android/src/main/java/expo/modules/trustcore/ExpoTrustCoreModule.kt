@@ -174,11 +174,12 @@ class ExpoTrustCoreModule : Module() {
         val wallet = HDWallet(mnemonic, "")
         val coin = CoinType.createFromValue(coinType)
         val index = accountIndex ?: 0
+        val normalizedMessage = normalizeMessagePayload(message)
         
         when (coin) {
           CoinType.ETHEREUM -> {
             // Ethereum personal_sign (EIP-191): "\x19Ethereum Signed Message:\n" + len(message) + message
-            val messageBytes = message.toByteArray(Charsets.UTF_8)
+            val messageBytes = parseMessageBytes(normalizedMessage)
             val prefix = "\u0019Ethereum Signed Message:\n${messageBytes.size}"
             val prefixedMessage = prefix.toByteArray(Charsets.UTF_8) + messageBytes
             val hash = Hash.keccak256(prefixedMessage)
@@ -186,10 +187,10 @@ class ExpoTrustCoreModule : Module() {
             val privateKey = wallet.getKey(coin, "m/44'/60'/0'/0/$index")
             val signature = privateKey.sign(hash, Curve.SECP256K1)
             
-            signature.toHexString()
+            normalizeEthereumSignature(signature)
           }
           CoinType.SOLANA -> {
-            val messageBytes = message.toByteArray(Charsets.UTF_8)
+            val messageBytes = normalizedMessage.toByteArray(Charsets.UTF_8)
             val privateKey = wallet.getKey(coin, "m/44'/501'/$index'/0'")
             val signature = privateKey.sign(messageBytes, Curve.ED25519)
             
@@ -225,7 +226,7 @@ class ExpoTrustCoreModule : Module() {
         val privateKey = wallet.getKey(coin, "m/44'/60'/0'/0/$index")
         val signature = privateKey.sign(hash, Curve.SECP256K1)
         
-        signature.toHexString()
+        normalizeEthereumSignature(signature)
       } catch (e: Exception) {
         throw Exception("Failed to sign EIP-712 data: ${e.message}")
       }
@@ -341,8 +342,15 @@ class ExpoTrustCoreModule : Module() {
     val valueBytes = ByteString.copyFrom(hexStringToByteArray(value))
     val gasPriceBytes = ByteString.copyFrom(hexStringToByteArray(gasPrice))
     val gasLimitBytes = ByteString.copyFrom(hexStringToByteArray(gasLimit))
-    val chainIdBytes = ByteString.copyFrom(byteArrayOf(chainId.toByte()))
-    val nonceBytes = ByteString.copyFrom(byteArrayOf(nonce.toByte()))
+    // Convert chainId and nonce to proper byte arrays (BigInteger handles large values correctly)
+    val chainIdBytes = ByteString.copyFrom(java.math.BigInteger.valueOf(chainId.toLong()).toByteArray().let { 
+      // Remove leading zero byte if present (BigInteger adds it for positive numbers)
+      if (it.isNotEmpty() && it[0] == 0.toByte() && it.size > 1) it.copyOfRange(1, it.size) else it 
+    })
+    val nonceBytes = ByteString.copyFrom(java.math.BigInteger.valueOf(nonce.toLong()).toByteArray().let { 
+      // Remove leading zero byte if present (BigInteger adds it for positive numbers)
+      if (it.isNotEmpty() && it[0] == 0.toByte() && it.size > 1) it.copyOfRange(1, it.size) else it 
+    })
     val dataBytes = ByteString.copyFrom(hexStringToByteArray(data))
     
     // Build Ethereum SigningInput
@@ -516,4 +524,42 @@ private fun hexStringToByteArray(hex: String): ByteArray {
   return cleanHex.chunked(2)
     .map { it.toInt(16).toByte() }
     .toByteArray()
+}
+
+private fun normalizeMessagePayload(message: String): String {
+  if (message.isEmpty()) {
+    return ""
+  }
+
+  return if (message.startsWith("0x") || message.startsWith("0X")) {
+    var body = message.substring(2)
+    if (body.length % 2 != 0) {
+      body = "0$body"
+    }
+    "0x${body.lowercase()}"
+  } else {
+    message
+  }
+}
+
+private fun parseMessageBytes(message: String): ByteArray {
+  if (message.startsWith("0x") || message.startsWith("0X")) {
+    val body = message.substring(2)
+    if (body.isEmpty()) {
+      return ByteArray(0)
+    }
+    return hexStringToByteArray("0x$body")
+  }
+  return message.toByteArray(Charsets.UTF_8)
+}
+
+private fun normalizeEthereumSignature(signature: ByteArray): String {
+  if (signature.size == 65) {
+    val vIndex = 64
+    val v = signature[vIndex].toInt() and 0xFF
+    if (v == 0 || v == 1) {
+      signature[vIndex] = (v + 27).toByte()
+    }
+  }
+  return "0x" + signature.toHexString()
 }

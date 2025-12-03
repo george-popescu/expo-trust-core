@@ -1,6 +1,6 @@
 {
   "name": "expo-trust-core",
-  "version": "1.0.1",
+  "version": "1.0.3",
   "description": "Production-ready multi-blockchain wallet SDK for React Native and Expo. Built on Trust Wallet Core with native transaction signing (Ethereum, Solana, Bitcoin), EIP-712 support, and comprehensive blockchain helpers.",
   "main": "index.ts",
   "types": "index.ts",
@@ -34,13 +34,13 @@
   ],
   "author": "George Popescu <cosmin.popescu21@gmail.com>",
   "license": "MIT",
-  "homepage": "https://github.com/george-popescu/trust-wallet-sdk#readme",
+  "homepage": "https://github.com/george-popescu/expo-trust-core#readme",
   "repository": {
     "type": "git",
-    "url": "https://github.com/george-popescu/trust-wallet-sdk.git"
+    "url": "https://github.com/george-popescu/expo-trust-core.git"
   },
   "bugs": {
-    "url": "https://github.com/george-popescu/trust-wallet-sdk/issues"
+    "url": "https://github.com/george-popescu/expo-trust-core/issues"
   },
   "peerDependencies": {
     "react": "*",

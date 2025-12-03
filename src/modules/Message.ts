@@ -1,6 +1,27 @@
 import WalletCore from '../ExpoTrustCoreModule';
 import { CoinType } from './CoinType';
 
+function normalizeMessageInput(message: string): string {
+  if (typeof message !== 'string') {
+    return message;
+  }
+
+  if (message.length === 0) {
+    return '';
+  }
+
+  if (message.startsWith('0x') || message.startsWith('0X')) {
+    let body = message.slice(2);
+    if (body.length % 2 !== 0) {
+      body = `0${body}`;
+    }
+    return `0x${body.toLowerCase()}`;
+  }
+
+  // Leave plain text untouched (including whitespace/newlines)
+  return message;
+}
+
 /**
  * Message signing utilities for dApp authentication
  */
@@ -22,8 +43,9 @@ export class Message {
     if (coinType !== CoinType.Ethereum && coinType !== CoinType.Solana) {
       throw new Error('Message signing only supported for Ethereum and Solana');
     }
-    
-    return WalletCore.signMessage(mnemonic, message, coinType, accountIndex);
+
+    const normalizedMessage = normalizeMessageInput(message);
+    return WalletCore.signMessage(mnemonic, normalizedMessage, coinType, accountIndex);
   }
 
   /**

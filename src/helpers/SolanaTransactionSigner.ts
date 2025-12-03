@@ -93,8 +93,20 @@ export class SolanaTransactionSigner {
       );
 
       // 2. Create Keypair for @solana/web3.js
+      // Trust Wallet Core returns 32-byte seed, use fromSeed() instead of fromSecretKey()
       const privateKeyBytes = Buffer.from(privateKeyHex, 'hex');
-      const keypair = Keypair.fromSecretKey(privateKeyBytes);
+      
+      // fromSeed expects exactly 32 bytes, fromSecretKey expects 64 bytes
+      let keypair: Keypair;
+      if (privateKeyBytes.length === 32) {
+        // Use fromSeed for 32-byte private key (seed)
+        keypair = Keypair.fromSeed(privateKeyBytes);
+      } else if (privateKeyBytes.length === 64) {
+        // Use fromSecretKey for 64-byte secret key (seed + public key)
+        keypair = Keypair.fromSecretKey(privateKeyBytes);
+      } else {
+        throw new Error(`Invalid private key size: ${privateKeyBytes.length} bytes (expected 32 or 64)`);
+      }
 
       // 3. Deserialize transaction based on type
       const txBuffer = Buffer.from(serializedTransaction, 'base64');
@@ -173,7 +185,13 @@ export class SolanaTransactionSigner {
    */
   static async getPublicKey(mnemonic: string, accountIndex: number = 0): Promise<string> {
     const privateKeyHex = await PrivateKey.export(mnemonic, CoinType.Solana, accountIndex);
-    const keypair = Keypair.fromSecretKey(Buffer.from(privateKeyHex, 'hex'));
+    const privateKeyBytes = Buffer.from(privateKeyHex, 'hex');
+    
+    // Trust Wallet Core returns 32-byte seed
+    const keypair = privateKeyBytes.length === 32 
+      ? Keypair.fromSeed(privateKeyBytes)
+      : Keypair.fromSecretKey(privateKeyBytes);
+      
     return keypair.publicKey.toBase58();
   }
 }

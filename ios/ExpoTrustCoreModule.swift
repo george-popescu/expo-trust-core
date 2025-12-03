@@ -196,23 +196,24 @@ public class ExpoTrustCoreModule: Module {
       }
       
       let index = accountIndex ?? 0
-      let messageData = Data(message.utf8)
-      
+      let normalizedMessage = try self.parseEthereumMessage(message)
+
       switch coin {
       case .ethereum:
         // Ethereum personal_sign (EIP-191): "\x19Ethereum Signed Message:\n" + len(message) + message
-        let prefix = "\u{19}Ethereum Signed Message:\n\(messageData.count)"
-        let prefixedMessage = Data(prefix.utf8) + messageData
+        let prefix = "\u{19}Ethereum Signed Message:\n\(normalizedMessage.count)"
+        let prefixedMessage = Data(prefix.utf8) + normalizedMessage
         let hash = Hash.keccak256(data: prefixedMessage)
         
         let privateKey = wallet.getKey(coin: coin, derivationPath: "m/44'/60'/0'/0/\(index)")
         let signature = privateKey.sign(digest: hash, curve: .secp256k1)!
         
-        return signature.hexString
+        return self.normalizeEthereumSignature(signature)
         
       case .solana:
+        let solanaMessage = message.trimmingCharacters(in: .whitespacesAndNewlines)
         let privateKey = wallet.getKey(coin: coin, derivationPath: "m/44'/501'/\(index)'/0'")
-        let signature = privateKey.sign(digest: messageData, curve: .ed25519)!
+        let signature = privateKey.sign(digest: Data(solanaMessage.utf8), curve: .ed25519)!
         
         return signature.hexString
         
@@ -256,8 +257,8 @@ public class ExpoTrustCoreModule: Module {
       // Sign the hash
       let privateKey = wallet.getKey(coin: .ethereum, derivationPath: "m/44'/60'/0'/0/\(index)")
       let signature = privateKey.sign(digest: hash, curve: .secp256k1)!
-      
-      return signature.hexString
+
+      return self.normalizeEthereumSignature(signature)
     }
 
     /**
@@ -452,8 +453,12 @@ public class ExpoTrustCoreModule: Module {
       ])
     }
     
-    let chainIdData = Data(hexString: String(format: "%02x", chainId))!
-    let nonceData = Data(hexString: String(format: "%02x", nonce))!
+    // Convert chainId and nonce to proper hex strings (handle values > 255)
+    let chainIdHex = String(chainId, radix: 16)
+    let nonceHex = String(nonce, radix: 16)
+    // Ensure even number of hex digits for proper Data conversion
+    let chainIdData = Data(hexString: chainIdHex.count % 2 == 0 ? chainIdHex : "0" + chainIdHex)!
+    let nonceData = Data(hexString: nonceHex.count % 2 == 0 ? nonceHex : "0" + nonceHex)!
     let dataBytes = Data(hexString: data.hasPrefix("0x") ? String(data.dropFirst(2)) : data) ?? Data()
     
     // Build Ethereum SigningInput
@@ -648,5 +653,43 @@ public class ExpoTrustCoreModule: Module {
     
     // Return hex-encoded signed transaction
     return output.encoded.hexString
+  }
+
+  private func parseEthereumMessage(_ message: String) throws -> Data {
+    if message.isEmpty {
+      return Data()
+    }
+    
+    if message.hasPrefix("0x") || message.hasPrefix("0X") {
+      var hexBody = String(message.dropFirst(2))
+      if hexBody.count % 2 != 0 {
+        hexBody = "0" + hexBody
+      }
+      if hexBody.isEmpty {
+        return Data()
+      }
+      guard let data = Data(hexString: hexBody) else {
+        throw NSError(domain: "ExpoTrustCore", code: 6, userInfo: [
+          NSLocalizedDescriptionKey: "Invalid hex message payload"
+        ])
+      }
+      return data
+    }
+    
+    return Data(message.utf8)
+  }
+  
+  private func normalizeEthereumSignature(_ signature: Data) -> String {
+    guard signature.count == 65 else {
+      return "0x" + signature.hexString
+    }
+    
+    var bytes = [UInt8](signature)
+    let vIndex = bytes.count - 1
+    if bytes[vIndex] < 27 {
+      bytes[vIndex] = bytes[vIndex] + 27
+    }
+    
+    return "0x" + Data(bytes).hexString
   }
 }
