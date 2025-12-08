@@ -329,9 +329,49 @@ class ExpoTrustCoreModule : Module() {
     val value = inputJSON.getString("value")
     val gasPrice = inputJSON.optString("gasPrice", "20000000000")  // 20 gwei default
     val gasLimit = inputJSON.optString("gasLimit", "21000")
-    val nonce = inputJSON.optInt("nonce", 0)
-    val chainId = inputJSON.optInt("chainId", 1)  // Mainnet default
     val data = inputJSON.optString("data", "0x")
+
+    // Parse nonce - can be Int, String (decimal), or String (hex)
+    val nonce: Int = when {
+      inputJSON.has("nonce") -> {
+        val nonceValue = inputJSON.get("nonce")
+        when (nonceValue) {
+          is Int -> nonceValue
+          is Long -> nonceValue.toInt()
+          is Number -> nonceValue.toInt()
+          is String -> {
+            if (nonceValue.startsWith("0x") || nonceValue.startsWith("0X")) {
+              nonceValue.drop(2).toIntOrNull(16) ?: 0
+            } else {
+              nonceValue.toIntOrNull() ?: 0
+            }
+          }
+          else -> 0
+        }
+      }
+      else -> 0
+    }
+
+    // Parse chainId - can be Int, String (decimal), or String (hex)
+    val chainId: Int = when {
+      inputJSON.has("chainId") -> {
+        val chainIdValue = inputJSON.get("chainId")
+        when (chainIdValue) {
+          is Int -> chainIdValue
+          is Long -> chainIdValue.toInt()
+          is Number -> chainIdValue.toInt()
+          is String -> {
+            if (chainIdValue.startsWith("0x") || chainIdValue.startsWith("0X")) {
+              chainIdValue.drop(2).toIntOrNull(16) ?: 1
+            } else {
+              chainIdValue.toIntOrNull() ?: 1
+            }
+          }
+          else -> 1
+        }
+      }
+      else -> 1  // Mainnet default
+    }
     
     // Check if EIP-1559 transaction
     val maxFeePerGas = if (inputJSON.has("maxFeePerGas")) inputJSON.getString("maxFeePerGas") else null

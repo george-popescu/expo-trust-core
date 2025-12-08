@@ -425,9 +425,35 @@ public class ExpoTrustCoreModule: Module {
     
     let gasPrice = inputJSON["gasPrice"] as? String ?? "20000000000"  // 20 gwei default
     let gasLimit = inputJSON["gasLimit"] as? String ?? "21000"
-    let nonce = inputJSON["nonce"] as? Int ?? 0
-    let chainId = inputJSON["chainId"] as? Int ?? 1  // Mainnet default
     let data = inputJSON["data"] as? String ?? "0x"
+
+    // Parse nonce - can be Int, String (decimal), or String (hex)
+    let nonce: Int
+    if let nonceInt = inputJSON["nonce"] as? Int {
+      nonce = nonceInt
+    } else if let nonceString = inputJSON["nonce"] as? String {
+      if nonceString.hasPrefix("0x") || nonceString.hasPrefix("0X") {
+        nonce = Int(nonceString.dropFirst(2), radix: 16) ?? 0
+      } else {
+        nonce = Int(nonceString) ?? 0
+      }
+    } else {
+      nonce = 0
+    }
+
+    // Parse chainId - can be Int, String (decimal), or String (hex)
+    let chainId: Int
+    if let chainIdInt = inputJSON["chainId"] as? Int {
+      chainId = chainIdInt
+    } else if let chainIdString = inputJSON["chainId"] as? String {
+      if chainIdString.hasPrefix("0x") || chainIdString.hasPrefix("0X") {
+        chainId = Int(chainIdString.dropFirst(2), radix: 16) ?? 1
+      } else {
+        chainId = Int(chainIdString) ?? 1
+      }
+    } else {
+      chainId = 1  // Mainnet default
+    }
     
     // Check if EIP-1559 transaction
     let maxFeePerGas = inputJSON["maxFeePerGas"] as? String
