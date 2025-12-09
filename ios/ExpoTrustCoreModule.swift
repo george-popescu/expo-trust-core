@@ -41,24 +41,26 @@ public class ExpoTrustCoreModule: Module {
 
     /**
      * Get address for a specific coin type with optional account index
+     * Uses consistent derivation paths matching getPrivateKey
      */
     Function("getAddress") { (mnemonic: String, coinType: Int, accountIndex: Int?) -> String in
       let accIndex = accountIndex ?? 0
-      
+
       guard let wallet = HDWallet(mnemonic: mnemonic, passphrase: "") else {
         throw NSError(domain: "ExpoTrustCore", code: 3, userInfo: [
           NSLocalizedDescriptionKey: "Failed to create HDWallet"
         ])
       }
-      
+
       let coinTypeValue = UInt32(exactly: coinType) ?? 0
       guard let coin = CoinType(rawValue: coinTypeValue) else {
         throw NSError(domain: "ExpoTrustCore", code: 3, userInfo: [
           NSLocalizedDescriptionKey: "Invalid coin type"
         ])
       }
-      
+
       // Build derivation path based on coin type and account index
+      // MUST match getPrivateKey derivation paths exactly!
       let derivationPath: String
       switch coin {
       case .bitcoin:
@@ -72,40 +74,31 @@ public class ExpoTrustCoreModule: Module {
       default:
         derivationPath = "m/44'/\(coin.rawValue)/\(accIndex)'/0/0"
       }
-      
-      // For account 0, use default method
-      if accIndex == 0 {
-        return wallet.getAddressForCoin(coin: coin)
-      }
-      
-      // For other accounts, derive manually using private key
+
+      // Always use custom derivation path for consistency with getPrivateKey
       let privateKey = wallet.getKey(coin: coin, derivationPath: derivationPath)
       return coin.deriveAddress(privateKey: privateKey)
     }
 
     /**
      * Get addresses for multiple coin types with optional account index
+     * Uses consistent derivation paths matching getPrivateKey
      */
     Function("getAddresses") { (mnemonic: String, coinTypes: [Int], accountIndex: Int?) -> [String] in
       let accIndex = accountIndex ?? 0
-      
+
       guard let wallet = HDWallet(mnemonic: mnemonic, passphrase: "") else {
         throw NSError(domain: "ExpoTrustCore", code: 4, userInfo: [
           NSLocalizedDescriptionKey: "Failed to get addresses"
         ])
       }
-      
+
       return coinTypes.compactMap { coinTypeValue in
         guard let coin = CoinType(rawValue: UInt32(exactly: coinTypeValue) ?? 0) else {
           return nil
         }
-        
-        // For account 0, use default
-        if accIndex == 0 {
-          return wallet.getAddressForCoin(coin: coin)
-        }
-        
-        // For other accounts, derive with custom path
+
+        // Always use custom derivation path for consistency with getPrivateKey
         let derivationPath: String
         switch coin {
         case .bitcoin:
@@ -119,7 +112,7 @@ public class ExpoTrustCoreModule: Module {
         default:
           derivationPath = "m/44'/\(coin.rawValue)/\(accIndex)'/0/0"
         }
-        
+
         let privateKey = wallet.getKey(coin: coin, derivationPath: derivationPath)
         return coin.deriveAddress(privateKey: privateKey)
       }
@@ -204,10 +197,10 @@ public class ExpoTrustCoreModule: Module {
         let prefix = "\u{19}Ethereum Signed Message:\n\(normalizedMessage.count)"
         let prefixedMessage = Data(prefix.utf8) + normalizedMessage
         let hash = Hash.keccak256(data: prefixedMessage)
-        
-        let privateKey = wallet.getKey(coin: coin, derivationPath: "m/44'/60'/0'/0/\(index)")
+
+        let privateKey = wallet.getKey(coin: coin, derivationPath: "m/44'/60'/\(index)'/0/0")
         let signature = privateKey.sign(digest: hash, curve: .secp256k1)!
-        
+
         return self.normalizeEthereumSignature(signature)
         
       case .solana:
@@ -253,9 +246,9 @@ public class ExpoTrustCoreModule: Module {
       
       // Encode EIP-712 data to hash (EIP-712 compliant)
       let hash = try EIP712Encoder.encodeAndHash(typedData: typedData)
-      
+
       // Sign the hash
-      let privateKey = wallet.getKey(coin: .ethereum, derivationPath: "m/44'/60'/0'/0/\(index)")
+      let privateKey = wallet.getKey(coin: .ethereum, derivationPath: "m/44'/60'/\(index)'/0/0")
       let signature = privateKey.sign(digest: hash, curve: .secp256k1)!
 
       return self.normalizeEthereumSignature(signature)

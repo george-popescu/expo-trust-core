@@ -84,19 +84,15 @@ class ExpoTrustCoreModule : Module() {
 
     /**
      * Get address for a specific coin type with optional account index
+     * Uses consistent derivation paths matching getPrivateKey
      */
     Function("getAddress") { mnemonic: String, coinType: Int, accountIndex: Int? ->
       try {
         val accIndex = accountIndex ?: 0
         val wallet = HDWallet(mnemonic, "")
         val coin = CoinType.createFromValue(coinType)
-        
-        // For account 0, use default
-        if (accIndex == 0) {
-          return@Function wallet.getAddressForCoin(coin)
-        }
-        
-        // For other accounts, derive manually with custom path (like iOS)
+
+        // Always use custom derivation path for consistency with getPrivateKey
         val derivationPath = getDerivationPath(coin, accIndex)
         val privateKey = wallet.getKey(coin, derivationPath)
         coin.deriveAddress(privateKey)
@@ -107,23 +103,20 @@ class ExpoTrustCoreModule : Module() {
 
     /**
      * Get addresses for multiple coin types with optional account index
+     * Uses consistent derivation paths matching getPrivateKey
      */
     Function("getAddresses") { mnemonic: String, coinTypes: List<Int>, accountIndex: Int? ->
       try {
         val accIndex = accountIndex ?: 0
         val wallet = HDWallet(mnemonic, "")
-        
+
         coinTypes.map { coinType ->
           val coin = CoinType.createFromValue(coinType)
-          
-          if (accIndex == 0) {
-            wallet.getAddressForCoin(coin)
-          } else {
-            // For other accounts, derive manually with custom path (like iOS)
-            val derivationPath = getDerivationPath(coin, accIndex)
-            val privateKey = wallet.getKey(coin, derivationPath)
-            coin.deriveAddress(privateKey)
-          }
+
+          // Always use custom derivation path for consistency with getPrivateKey
+          val derivationPath = getDerivationPath(coin, accIndex)
+          val privateKey = wallet.getKey(coin, derivationPath)
+          coin.deriveAddress(privateKey)
         }
       } catch (e: Exception) {
         throw Exception("Failed to get addresses: ${e.message}")
@@ -183,10 +176,10 @@ class ExpoTrustCoreModule : Module() {
             val prefix = "\u0019Ethereum Signed Message:\n${messageBytes.size}"
             val prefixedMessage = prefix.toByteArray(Charsets.UTF_8) + messageBytes
             val hash = Hash.keccak256(prefixedMessage)
-            
-            val privateKey = wallet.getKey(coin, "m/44'/60'/0'/0/$index")
+
+            val privateKey = wallet.getKey(coin, "m/44'/60'/$index'/0/0")
             val signature = privateKey.sign(hash, Curve.SECP256K1)
-            
+
             normalizeEthereumSignature(signature)
           }
           CoinType.SOLANA -> {
@@ -221,11 +214,11 @@ class ExpoTrustCoreModule : Module() {
         
         // Encode using EIP-712 (EIP-712 compliant implementation)
         val hash = EIP712Encoder.encodeAndHash(typedDataJSON)
-        
+
         // Sign the hash
-        val privateKey = wallet.getKey(coin, "m/44'/60'/0'/0/$index")
+        val privateKey = wallet.getKey(coin, "m/44'/60'/$index'/0/0")
         val signature = privateKey.sign(hash, Curve.SECP256K1)
-        
+
         normalizeEthereumSignature(signature)
       } catch (e: Exception) {
         throw Exception("Failed to sign EIP-712 data: ${e.message}")

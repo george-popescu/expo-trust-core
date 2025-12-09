@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.5] - 2025-12-09
+
+### Fixed
+- **Critical: "unknown signer" error when sending Solana transactions**
+  - Root cause: `getAddress` for account index 0 used Trust Wallet Core's default derivation path (`m/44'/501'/0'`), while `getPrivateKey` used the standard path (`m/44'/501'/0'/0'`)
+  - Now all functions consistently use `m/44'/501'/accountIndex'/0'` (industry standard, compatible with Phantom, Ledger, Solflare)
+  - Affected functions: `getAddress`, `getAddresses` (both iOS and Android)
+
+- **Ethereum message signing used wrong derivation path**
+  - `signMessage` and `signTypedData` were using `m/44'/60'/0'/0/accountIndex` instead of `m/44'/60'/accountIndex'/0/0`
+  - Now consistent with `getAddress` and `getPrivateKey` derivation
+
+### Changed
+- iOS `ExpoTrustCoreModule.swift`: Unified derivation paths across all functions
+- Android `ExpoTrustCoreModule.kt`: Unified derivation paths across all functions
+
 ## [1.0.4] - 2025-12-08
 
 ### Fixed
