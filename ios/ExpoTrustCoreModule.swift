@@ -61,18 +61,19 @@ public class ExpoTrustCoreModule: Module {
 
       // Build derivation path based on coin type and account index
       // MUST match getPrivateKey derivation paths exactly!
+      // Ethereum uses address_index for multi-account (MetaMask/Ledger/OneKey compatible)
       let derivationPath: String
       switch coin {
       case .bitcoin:
-        derivationPath = "m/84'/0'/\(accIndex)'/0/0" // Native SegWit
+        derivationPath = "m/84'/0'/\(accIndex)'/0/0" // Native SegWit - account level
       case .ethereum:
-        derivationPath = "m/44'/60'/\(accIndex)'/0/0"
+        derivationPath = "m/44'/60'/0'/0/\(accIndex)" // Industry standard - address_index level
       case .solana:
-        derivationPath = "m/44'/501'/\(accIndex)'/0'"
+        derivationPath = "m/44'/501'/\(accIndex)'/0'" // Solana uses account level
       case .dogecoin:
-        derivationPath = "m/44'/3'/\(accIndex)'/0/0"
+        derivationPath = "m/44'/3'/\(accIndex)'/0/0" // Dogecoin - account level
       default:
-        derivationPath = "m/44'/\(coin.rawValue)/\(accIndex)'/0/0"
+        derivationPath = "m/44'/\(coin.rawValue)/0'/0/\(accIndex)"
       }
 
       // Always use custom derivation path for consistency with getPrivateKey
@@ -99,18 +100,19 @@ public class ExpoTrustCoreModule: Module {
         }
 
         // Always use custom derivation path for consistency with getPrivateKey
+        // Ethereum uses address_index for multi-account (MetaMask/Ledger/OneKey compatible)
         let derivationPath: String
         switch coin {
         case .bitcoin:
-          derivationPath = "m/84'/0'/\(accIndex)'/0/0"
+          derivationPath = "m/84'/0'/\(accIndex)'/0/0" // Native SegWit - account level
         case .ethereum:
-          derivationPath = "m/44'/60'/\(accIndex)'/0/0"
+          derivationPath = "m/44'/60'/0'/0/\(accIndex)" // Industry standard - address_index level
         case .solana:
-          derivationPath = "m/44'/501'/\(accIndex)'/0'"
+          derivationPath = "m/44'/501'/\(accIndex)'/0'" // Solana uses account level
         case .dogecoin:
-          derivationPath = "m/44'/3'/\(accIndex)'/0/0"
+          derivationPath = "m/44'/3'/\(accIndex)'/0/0" // Dogecoin - account level
         default:
-          derivationPath = "m/44'/\(coin.rawValue)/\(accIndex)'/0/0"
+          derivationPath = "m/44'/\(coin.rawValue)/0'/0/\(accIndex)"
         }
 
         let privateKey = wallet.getKey(coin: coin, derivationPath: derivationPath)
@@ -198,7 +200,7 @@ public class ExpoTrustCoreModule: Module {
         let prefixedMessage = Data(prefix.utf8) + normalizedMessage
         let hash = Hash.keccak256(data: prefixedMessage)
 
-        let privateKey = wallet.getKey(coin: coin, derivationPath: "m/44'/60'/\(index)'/0/0")
+        let privateKey = wallet.getKey(coin: coin, derivationPath: "m/44'/60'/0'/0/\(index)")
         let signature = privateKey.sign(digest: hash, curve: .secp256k1)!
 
         return self.normalizeEthereumSignature(signature)
@@ -248,7 +250,7 @@ public class ExpoTrustCoreModule: Module {
       let hash = try EIP712Encoder.encodeAndHash(typedData: typedData)
 
       // Sign the hash
-      let privateKey = wallet.getKey(coin: .ethereum, derivationPath: "m/44'/60'/\(index)'/0/0")
+      let privateKey = wallet.getKey(coin: .ethereum, derivationPath: "m/44'/60'/0'/0/\(index)")
       let signature = privateKey.sign(digest: hash, curve: .secp256k1)!
 
       return self.normalizeEthereumSignature(signature)
@@ -269,20 +271,21 @@ public class ExpoTrustCoreModule: Module {
       }
       
       // Build derivation path
+      // Ethereum uses address_index for multi-account (MetaMask/Ledger/OneKey compatible)
       let derivationPath: String
       switch coin {
       case .bitcoin:
-        derivationPath = "m/84'/0'/\(accIndex)'/0/0"
+        derivationPath = "m/84'/0'/\(accIndex)'/0/0" // Native SegWit - account level
       case .ethereum:
-        derivationPath = "m/44'/60'/\(accIndex)'/0/0"
+        derivationPath = "m/44'/60'/0'/0/\(accIndex)" // Industry standard - address_index level
       case .solana:
-        derivationPath = "m/44'/501'/\(accIndex)'/0'"
+        derivationPath = "m/44'/501'/\(accIndex)'/0'" // Solana uses account level
       case .dogecoin:
-        derivationPath = "m/44'/3'/\(accIndex)'/0/0"
+        derivationPath = "m/44'/3'/\(accIndex)'/0/0" // Dogecoin - account level
       default:
-        derivationPath = "m/44'/\(coin.rawValue)/\(accIndex)'/0/0"
+        derivationPath = "m/44'/\(coin.rawValue)/0'/0/\(accIndex)"
       }
-      
+
       let privateKey = wallet.getKey(coin: coin, derivationPath: derivationPath)
       return privateKey.data.hexString
     }
@@ -301,22 +304,26 @@ public class ExpoTrustCoreModule: Module {
       }
       
       // Build derivation path
+      // Ethereum uses address_index for multi-account (MetaMask/Ledger/OneKey compatible)
       let derivationPath: String
       switch coin {
       case .bitcoin:
-        derivationPath = "m/84'/0'/\(accIndex)'/0/0"
+        derivationPath = "m/84'/0'/\(accIndex)'/0/0" // Native SegWit - account level
       case .ethereum:
-        derivationPath = "m/44'/60'/\(accIndex)'/0/0"
+        derivationPath = "m/44'/60'/0'/0/\(accIndex)" // Industry standard - address_index level
       case .solana:
-        derivationPath = "m/44'/501'/\(accIndex)'/0'"
+        derivationPath = "m/44'/501'/\(accIndex)'/0'" // Solana uses account level
       case .dogecoin:
-        derivationPath = "m/44'/3'/\(accIndex)'/0/0"
+        derivationPath = "m/44'/3'/\(accIndex)'/0/0" // Dogecoin - account level
       default:
-        derivationPath = "m/44'/\(coin.rawValue)/\(accIndex)'/0/0"
+        derivationPath = "m/44'/\(coin.rawValue)/0'/0/\(accIndex)"
       }
-      
+
       let privateKey = wallet.getKey(coin: coin, derivationPath: derivationPath)
-      let publicKey = privateKey.getPublicKeySecp256k1(compressed: true)
+      // Use correct curve for each chain
+      let publicKey = coin == .solana
+        ? privateKey.getPublicKeyEd25519()
+        : privateKey.getPublicKeySecp256k1(compressed: true)
       return publicKey.data.hexString
     }
 
@@ -372,20 +379,21 @@ public class ExpoTrustCoreModule: Module {
       }
       
       // Build derivation path
+      // Ethereum uses address_index for multi-account (MetaMask/Ledger/OneKey compatible)
       let derivationPath: String
       switch coin {
       case .bitcoin:
-        derivationPath = "m/84'/0'/\(accIndex)'/0/0"
+        derivationPath = "m/84'/0'/\(accIndex)'/0/0" // Native SegWit - account level
       case .ethereum:
-        derivationPath = "m/44'/60'/\(accIndex)'/0/0"
+        derivationPath = "m/44'/60'/0'/0/\(accIndex)" // Industry standard - address_index level
       case .solana:
-        derivationPath = "m/44'/501'/\(accIndex)'/0'"
+        derivationPath = "m/44'/501'/\(accIndex)'/0'" // Solana uses account level
       case .dogecoin:
-        derivationPath = "m/44'/3'/\(accIndex)'/0/0"
+        derivationPath = "m/44'/3'/\(accIndex)'/0/0" // Dogecoin - account level
       default:
-        derivationPath = "m/44'/\(coin.rawValue)/\(accIndex)'/0/0"
+        derivationPath = "m/44'/\(coin.rawValue)/0'/0/\(accIndex)"
       }
-      
+
       let privateKey = wallet.getKey(coin: coin, derivationPath: derivationPath)
       let signature = privateKey.sign(digest: hashData, curve: .secp256k1)!
       
@@ -400,7 +408,7 @@ public class ExpoTrustCoreModule: Module {
    */
   private func signEthereumTransaction(wallet: HDWallet, inputJSON: [String: Any], accountIndex: Int) throws -> String {
     let coin = CoinType.ethereum
-    let derivationPath = "m/44'/60'/\(accountIndex)'/0/0"
+    let derivationPath = "m/44'/60'/0'/0/\(accountIndex)" // Industry standard - address_index level
     let privateKey = wallet.getKey(coin: coin, derivationPath: derivationPath)
     
     // Parse input parameters

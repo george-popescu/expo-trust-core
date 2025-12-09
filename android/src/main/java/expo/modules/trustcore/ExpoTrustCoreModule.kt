@@ -31,13 +31,14 @@ class ExpoTrustCoreModule : Module() {
   }
   
   // Helper: Get derivation path for coin type and account index
+  // Ethereum uses address_index for multi-account (MetaMask/Ledger/OneKey compatible)
   private fun getDerivationPath(coin: CoinType, accountIndex: Int): String {
     return when (coin) {
-      CoinType.BITCOIN -> "m/84'/0'/$accountIndex'/0/0"
-      CoinType.ETHEREUM -> "m/44'/60'/$accountIndex'/0/0"
-      CoinType.SOLANA -> "m/44'/501'/$accountIndex'/0'"
-      CoinType.DOGECOIN -> "m/44'/3'/$accountIndex'/0/0"
-      else -> "m/44'/${coin.value()}/$accountIndex'/0/0"
+      CoinType.BITCOIN -> "m/84'/0'/$accountIndex'/0/0" // Native SegWit - account level
+      CoinType.ETHEREUM -> "m/44'/60'/0'/0/$accountIndex" // Industry standard - address_index level
+      CoinType.SOLANA -> "m/44'/501'/$accountIndex'/0'" // Solana uses account level
+      CoinType.DOGECOIN -> "m/44'/3'/$accountIndex'/0/0" // Dogecoin - account level
+      else -> "m/44'/${coin.value()}/0'/0/$accountIndex"
     }
   }
   
@@ -177,7 +178,7 @@ class ExpoTrustCoreModule : Module() {
             val prefixedMessage = prefix.toByteArray(Charsets.UTF_8) + messageBytes
             val hash = Hash.keccak256(prefixedMessage)
 
-            val privateKey = wallet.getKey(coin, "m/44'/60'/$index'/0/0")
+            val privateKey = wallet.getKey(coin, "m/44'/60'/0'/0/$index")
             val signature = privateKey.sign(hash, Curve.SECP256K1)
 
             normalizeEthereumSignature(signature)
@@ -216,7 +217,7 @@ class ExpoTrustCoreModule : Module() {
         val hash = EIP712Encoder.encodeAndHash(typedDataJSON)
 
         // Sign the hash
-        val privateKey = wallet.getKey(coin, "m/44'/60'/$index'/0/0")
+        val privateKey = wallet.getKey(coin, "m/44'/60'/0'/0/$index")
         val signature = privateKey.sign(hash, Curve.SECP256K1)
 
         normalizeEthereumSignature(signature)
@@ -255,8 +256,13 @@ class ExpoTrustCoreModule : Module() {
         
         val derivationPath = getDerivationPath(coin, accIndex)
         val privateKey = wallet.getKey(coin, derivationPath)
-        
-        val publicKey = privateKey.getPublicKeySecp256k1(true)
+
+        // Use correct curve for each chain
+        val publicKey = if (coin == CoinType.SOLANA) {
+          privateKey.getPublicKeyEd25519()
+        } else {
+          privateKey.getPublicKeySecp256k1(true)
+        }
         publicKey.data().toHexString()
       } catch (e: Exception) {
         throw Exception("Failed to get public key: ${e.message}")
@@ -314,7 +320,7 @@ class ExpoTrustCoreModule : Module() {
    */
   private fun signEthereumTransaction(wallet: HDWallet, inputJSON: org.json.JSONObject, accountIndex: Int): String {
     val coin = CoinType.ETHEREUM
-    val derivationPath = "m/44'/60'/$accountIndex'/0/0"
+    val derivationPath = "m/44'/60'/0'/0/$accountIndex" // Industry standard - address_index level
     val privateKey = wallet.getKey(coin, derivationPath)
     
     // Parse input parameters

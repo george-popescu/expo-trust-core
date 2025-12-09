@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.6] - 2025-12-09
+
+### Fixed
+- **Critical: Ethereum derivation path now industry-standard (MetaMask/Ledger/OneKey compatible)**
+  - Changed from `m/44'/60'/accountIndex'/0/0` to `m/44'/60'/0'/0/accountIndex`
+  - The previous path incremented `account` level, industry standard increments `address_index`
+  - Now multi-account addresses match MetaMask, Ledger, OneKey, Trezor, etc.
+  - Affected: ALL Ethereum functions (`getAddress`, `getAddresses`, `getPrivateKey`, `getPublicKey`, `signMessage`, `signTypedData`, `signTransaction`, `signRawTransaction`)
+
+- **Solana public key export used wrong curve**
+  - `getPublicKey` was using secp256k1 for all chains
+  - Solana uses Ed25519 - now correctly exports Ed25519 public key for Solana
+
+### Changed
+- iOS `ExpoTrustCoreModule.swift`: Ethereum paths now use address_index level
+- Android `ExpoTrustCoreModule.kt`: Ethereum paths now use address_index level
+
 ## [1.0.5] - 2025-12-09
 
 ### Fixed
