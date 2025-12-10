@@ -65,13 +65,13 @@ public class ExpoTrustCoreModule: Module {
       let derivationPath: String
       switch coin {
       case .bitcoin:
-        derivationPath = "m/84'/0'/\(accIndex)'/0/0" // Native SegWit - account level
+        derivationPath = "m/84'/0'/0'/0/\(accIndex)" // Native SegWit - Phantom compatible (address_index)
       case .ethereum:
         derivationPath = "m/44'/60'/0'/0/\(accIndex)" // Industry standard - address_index level
       case .solana:
-        derivationPath = "m/44'/501'/\(accIndex)'/0'" // Solana uses account level
+        derivationPath = "m/44'/501'/\(accIndex)'/0'" // Solana - Phantom/Solflare standard
       case .dogecoin:
-        derivationPath = "m/44'/3'/\(accIndex)'/0/0" // Dogecoin - account level
+        derivationPath = "m/44'/3'/0'/0/\(accIndex)" // Dogecoin - address_index level
       default:
         derivationPath = "m/44'/\(coin.rawValue)/0'/0/\(accIndex)"
       }
@@ -104,13 +104,13 @@ public class ExpoTrustCoreModule: Module {
         let derivationPath: String
         switch coin {
         case .bitcoin:
-          derivationPath = "m/84'/0'/\(accIndex)'/0/0" // Native SegWit - account level
+          derivationPath = "m/84'/0'/0'/0/\(accIndex)" // Native SegWit - Phantom compatible (address_index)
         case .ethereum:
           derivationPath = "m/44'/60'/0'/0/\(accIndex)" // Industry standard - address_index level
         case .solana:
-          derivationPath = "m/44'/501'/\(accIndex)'/0'" // Solana uses account level
+          derivationPath = "m/44'/501'/\(accIndex)'/0'" // Solana - Phantom/Solflare standard
         case .dogecoin:
-          derivationPath = "m/44'/3'/\(accIndex)'/0/0" // Dogecoin - account level
+          derivationPath = "m/44'/3'/0'/0/\(accIndex)" // Dogecoin - address_index level
         default:
           derivationPath = "m/44'/\(coin.rawValue)/0'/0/\(accIndex)"
         }
@@ -275,13 +275,13 @@ public class ExpoTrustCoreModule: Module {
       let derivationPath: String
       switch coin {
       case .bitcoin:
-        derivationPath = "m/84'/0'/\(accIndex)'/0/0" // Native SegWit - account level
+        derivationPath = "m/84'/0'/0'/0/\(accIndex)" // Native SegWit - Phantom compatible (address_index)
       case .ethereum:
         derivationPath = "m/44'/60'/0'/0/\(accIndex)" // Industry standard - address_index level
       case .solana:
-        derivationPath = "m/44'/501'/\(accIndex)'/0'" // Solana uses account level
+        derivationPath = "m/44'/501'/\(accIndex)'/0'" // Solana - Phantom/Solflare standard
       case .dogecoin:
-        derivationPath = "m/44'/3'/\(accIndex)'/0/0" // Dogecoin - account level
+        derivationPath = "m/44'/3'/0'/0/\(accIndex)" // Dogecoin - address_index level
       default:
         derivationPath = "m/44'/\(coin.rawValue)/0'/0/\(accIndex)"
       }
@@ -308,13 +308,13 @@ public class ExpoTrustCoreModule: Module {
       let derivationPath: String
       switch coin {
       case .bitcoin:
-        derivationPath = "m/84'/0'/\(accIndex)'/0/0" // Native SegWit - account level
+        derivationPath = "m/84'/0'/0'/0/\(accIndex)" // Native SegWit - Phantom compatible (address_index)
       case .ethereum:
         derivationPath = "m/44'/60'/0'/0/\(accIndex)" // Industry standard - address_index level
       case .solana:
-        derivationPath = "m/44'/501'/\(accIndex)'/0'" // Solana uses account level
+        derivationPath = "m/44'/501'/\(accIndex)'/0'" // Solana - Phantom/Solflare standard
       case .dogecoin:
-        derivationPath = "m/44'/3'/\(accIndex)'/0/0" // Dogecoin - account level
+        derivationPath = "m/44'/3'/0'/0/\(accIndex)" // Dogecoin - address_index level
       default:
         derivationPath = "m/44'/\(coin.rawValue)/0'/0/\(accIndex)"
       }
@@ -383,13 +383,13 @@ public class ExpoTrustCoreModule: Module {
       let derivationPath: String
       switch coin {
       case .bitcoin:
-        derivationPath = "m/84'/0'/\(accIndex)'/0/0" // Native SegWit - account level
+        derivationPath = "m/84'/0'/0'/0/\(accIndex)" // Native SegWit - Phantom compatible (address_index)
       case .ethereum:
         derivationPath = "m/44'/60'/0'/0/\(accIndex)" // Industry standard - address_index level
       case .solana:
-        derivationPath = "m/44'/501'/\(accIndex)'/0'" // Solana uses account level
+        derivationPath = "m/44'/501'/\(accIndex)'/0'" // Solana - Phantom/Solflare standard
       case .dogecoin:
-        derivationPath = "m/44'/3'/\(accIndex)'/0/0" // Dogecoin - account level
+        derivationPath = "m/44'/3'/0'/0/\(accIndex)" // Dogecoin - address_index level
       default:
         derivationPath = "m/44'/\(coin.rawValue)/0'/0/\(accIndex)"
       }
@@ -594,9 +594,9 @@ public class ExpoTrustCoreModule: Module {
     let derivationPath: String
     switch coin {
     case .bitcoin:
-      derivationPath = "m/84'/0'/\(accountIndex)'/0/0"  // Native SegWit
+      derivationPath = "m/84'/0'/0'/0/\(accountIndex)"  // Native SegWit - Phantom compatible
     case .dogecoin:
-      derivationPath = "m/44'/3'/\(accountIndex)'/0/0"
+      derivationPath = "m/44'/3'/0'/0/\(accountIndex)"
     default:
       derivationPath = "m/44'/\(coin.rawValue)/\(accountIndex)'/0/0"
     }

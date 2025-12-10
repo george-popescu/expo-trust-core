@@ -5,6 +5,45 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.9] - 2025-12-10
+
+### Fixed
+- **Critical: Solana derivation path was missing final hardened component**
+  - Changed from `m/44'/501'/accountIndex'` to `m/44'/501'/accountIndex'/0'`
+  - Previous path (3-level) was causing address mismatch for account index > 0
+  - Now compatible with Phantom, Solflare, Ledger, and other modern Solana wallets
+  - Affected: ALL Solana functions (`getAddress`, `getAddresses`, `getPrivateKey`, `signMessage`, `signTransaction`)
+
+- **Critical: Bitcoin derivation path now Phantom-compatible**
+  - Changed from `m/84'/0'/accountIndex'/0/0` to `m/84'/0'/0'/0/accountIndex`
+  - Previous path incremented `account` level, Phantom increments `address_index`
+  - Now multi-account addresses match Phantom and other modern wallets
+  - Affected: ALL Bitcoin functions (`getAddress`, `getAddresses`, `getPrivateKey`, `signTransaction`)
+
+- **Dogecoin derivation path updated for consistency**
+  - Changed from `m/44'/3'/accountIndex'/0/0` to `m/44'/3'/0'/0/accountIndex`
+  - Now consistent with Bitcoin and Ethereum (address_index level)
+  - Affected: ALL Dogecoin functions (`getAddress`, `getAddresses`, `getPrivateKey`, `signTransaction`)
+
+### Changed
+- iOS `ExpoTrustCoreModule.swift`: All Solana paths now use `m/44'/501'/accountIndex'/0'`
+- iOS `ExpoTrustCoreModule.swift`: All Bitcoin paths now use `m/84'/0'/0'/0/accountIndex`
+- iOS `ExpoTrustCoreModule.swift`: All Dogecoin paths now use `m/44'/3'/0'/0/accountIndex`
+- Android `ExpoTrustCoreModule.kt`: All Solana paths now use `m/44'/501'/accountIndex'/0'`
+- Android `ExpoTrustCoreModule.kt`: All Bitcoin paths now use `m/84'/0'/0'/0/accountIndex`
+- Android `ExpoTrustCoreModule.kt`: All Dogecoin paths now use `m/44'/3'/0'/0/accountIndex`
+
+## [1.0.7] - 2025-12-10
+
+### Fixed
+- **Solana derivation path confirmed as Phantom/Solflare industry standard**
+  - Path: `m/44'/501'/accountIndex'/0'` (4-level with hardened suffix)
+  - Compatible with Phantom, Solflare, and other modern Solana wallets
+
+### Changed
+- iOS `ExpoTrustCoreModule.swift`: Solana paths use `m/44'/501'/accountIndex'/0'`
+- Android `ExpoTrustCoreModule.kt`: Solana paths use `m/44'/501'/accountIndex'/0'`
+
 ## [1.0.6] - 2025-12-09
 
 ### Fixed

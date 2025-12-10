@@ -34,10 +34,10 @@ class ExpoTrustCoreModule : Module() {
   // Ethereum uses address_index for multi-account (MetaMask/Ledger/OneKey compatible)
   private fun getDerivationPath(coin: CoinType, accountIndex: Int): String {
     return when (coin) {
-      CoinType.BITCOIN -> "m/84'/0'/$accountIndex'/0/0" // Native SegWit - account level
+      CoinType.BITCOIN -> "m/84'/0'/0'/0/$accountIndex" // Native SegWit - Phantom compatible (address_index)
       CoinType.ETHEREUM -> "m/44'/60'/0'/0/$accountIndex" // Industry standard - address_index level
-      CoinType.SOLANA -> "m/44'/501'/$accountIndex'/0'" // Solana uses account level
-      CoinType.DOGECOIN -> "m/44'/3'/$accountIndex'/0/0" // Dogecoin - account level
+      CoinType.SOLANA -> "m/44'/501'/$accountIndex'/0'" // Solana - Phantom/Solflare standard
+      CoinType.DOGECOIN -> "m/44'/3'/0'/0/$accountIndex" // Dogecoin - address_index level
       else -> "m/44'/${coin.value()}/0'/0/$accountIndex"
     }
   }
@@ -483,8 +483,8 @@ class ExpoTrustCoreModule : Module() {
   private fun signBitcoinTransaction(wallet: HDWallet, coin: CoinType, inputJSON: org.json.JSONObject, accountIndex: Int): String {
     // Derive private key
     val derivationPath = when (coin) {
-      CoinType.BITCOIN -> "m/84'/0'/$accountIndex'/0/0"  // Native SegWit
-      CoinType.DOGECOIN -> "m/44'/3'/$accountIndex'/0/0"
+      CoinType.BITCOIN -> "m/84'/0'/0'/0/$accountIndex"  // Native SegWit - Phantom compatible
+      CoinType.DOGECOIN -> "m/44'/3'/0'/0/$accountIndex"
       else -> "m/44'/${coin.value()}/$accountIndex'/0/0"
     }
     

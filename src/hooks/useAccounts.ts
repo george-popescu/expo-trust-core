@@ -74,15 +74,15 @@ export function useAccounts(): UseAccountsReturn {
 function getDerivationPath(coinType: CoinType, accountIndex: number): string {
   switch (coinType) {
     case CoinType.Bitcoin:
-      return `m/84'/0'/${accountIndex}'/0/0`;
+      return `m/84'/0'/0'/0/${accountIndex}`; // Phantom compatible
     case CoinType.Ethereum:
-      return `m/44'/60'/${accountIndex}'/0/0`;
+      return `m/44'/60'/0'/0/${accountIndex}`; // MetaMask/Ledger compatible
     case CoinType.Solana:
-      return `m/44'/501'/${accountIndex}'/0'`;
+      return `m/44'/501'/${accountIndex}'/0'`; // Phantom/Solflare compatible
     case CoinType.Dogecoin:
-      return `m/44'/3'/${accountIndex}'/0/0`;
+      return `m/44'/3'/0'/0/${accountIndex}`;
     default:
-      return `m/44'/${coinType}/${accountIndex}'/0/0`;
+      return `m/44'/${coinType}/0'/0/${accountIndex}`;
   }
 }
 
