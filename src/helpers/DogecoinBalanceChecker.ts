@@ -22,6 +22,7 @@ export interface DogecoinBalanceResult {
 
 export interface DogecoinAPIProvider {
   name: string;
+  setBaseUrl?(url: string): void;
   checkBalance(address: string): Promise<DogecoinBalanceResult>;
   getUTXOs(address: string): Promise<DogecoinUTXO[]>;
 }
@@ -32,6 +33,8 @@ export interface DogecoinAPIProvider {
 class BlockchairDogecoinProvider implements DogecoinAPIProvider {
   name = 'blockchair.com';
   private baseUrl = 'https://api.blockchair.com/dogecoin';
+
+  setBaseUrl(url: string): void { this.baseUrl = url; }
 
   async checkBalance(address: string): Promise<DogecoinBalanceResult> {
     try {
@@ -78,7 +81,7 @@ class BlockchairDogecoinProvider implements DogecoinAPIProvider {
         vout: utxo.index,
         value: utxo.value,
         scriptPubKey: utxo.script_hex,
-        confirmations: result.context.state - utxo.block_id,
+        confirmations: utxo.block_id != null ? result.context.state - utxo.block_id : 0,
       }));
     } catch (error) {
       throw new Error(`Blockchair UTXO error: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -92,6 +95,8 @@ class BlockchairDogecoinProvider implements DogecoinAPIProvider {
 class DogechainProvider implements DogecoinAPIProvider {
   name = 'dogechain.info';
   private baseUrl = 'https://dogechain.info/api/v1';
+
+  setBaseUrl(url: string): void { this.baseUrl = url; }
 
   async checkBalance(address: string): Promise<DogecoinBalanceResult> {
     try {
@@ -152,6 +157,8 @@ class DogechainProvider implements DogecoinAPIProvider {
 class SoChainProvider implements DogecoinAPIProvider {
   name = 'chain.so';
   private baseUrl = 'https://sochain.com/api/v2';
+
+  setBaseUrl(url: string): void { this.baseUrl = url; }
 
   async checkBalance(address: string): Promise<DogecoinBalanceResult> {
     try {
@@ -215,12 +222,49 @@ class SoChainProvider implements DogecoinAPIProvider {
  * Dogecoin Balance Checker
  * Provides methods to check DOGE balance and fetch UTXOs from multiple APIs
  */
+export type DogecoinProviderName = 'blockchair.com' | 'chain.so' | 'dogechain.info' | (string & {});
+
 export class DogecoinBalanceChecker {
   private static providers: Record<string, DogecoinAPIProvider> = {
     'blockchair.com': new BlockchairDogecoinProvider(),
     'chain.so': new SoChainProvider(),
     'dogechain.info': new DogechainProvider(),
   };
+
+  private static fallbackOrder: string[] = ['blockchair.com', 'chain.so', 'dogechain.info'];
+
+  /**
+   * Configure a built-in provider's base URL
+   * @param providerName Name of the provider to configure
+   * @param baseUrl Custom base URL to use
+   */
+  static configure(providerName: DogecoinProviderName, baseUrl: string): void {
+    const provider = this.providers[providerName];
+    if (!provider) {
+      throw new Error(`Unknown provider: ${providerName}. Use registerProvider() for custom providers.`);
+    }
+    if (!provider.setBaseUrl) {
+      throw new Error(`Provider ${providerName} does not support URL configuration.`);
+    }
+    provider.setBaseUrl(baseUrl);
+  }
+
+  /**
+   * Register a custom API provider
+   * @param name Unique name for the provider
+   * @param provider Provider implementation
+   */
+  static registerProvider(name: string, provider: DogecoinAPIProvider): void {
+    this.providers[name] = provider;
+  }
+
+  /**
+   * Set the fallback order for providers
+   * @param order Array of provider names in priority order
+   */
+  static setFallbackOrder(order: string[]): void {
+    this.fallbackOrder = order;
+  }
 
   /**
    * Check Dogecoin balance for an address
@@ -229,7 +273,7 @@ export class DogecoinBalanceChecker {
    */
   static async checkDOGE(
     address: string,
-    apiProvider: 'blockchair.com' | 'chain.so' | 'dogechain.info' = 'blockchair.com'
+    apiProvider: DogecoinProviderName = 'blockchair.com'
   ): Promise<DogecoinBalanceResult> {
     const provider = this.providers[apiProvider];
     if (!provider) {
@@ -240,13 +284,35 @@ export class DogecoinBalanceChecker {
   }
 
   /**
+   * Check Dogecoin balance with automatic fallback across providers
+   * Tries each provider in fallback order until one succeeds
+   * @param address Dogecoin address
+   */
+  static async checkDOGEWithFallback(address: string): Promise<DogecoinBalanceResult> {
+    const errors: string[] = [];
+
+    for (const providerName of this.fallbackOrder) {
+      const provider = this.providers[providerName];
+      if (!provider) continue;
+
+      try {
+        return await provider.checkBalance(address);
+      } catch (error) {
+        errors.push(`${providerName}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+    }
+
+    throw new Error(`All Dogecoin API providers failed:\n${errors.join('\n')}`);
+  }
+
+  /**
    * Get UTXOs for a Dogecoin address
    * @param address Dogecoin address
    * @param apiProvider API provider to use (default: blockchair.com)
    */
   static async getUTXOs(
     address: string,
-    apiProvider: 'blockchair.com' | 'chain.so' | 'dogechain.info' = 'blockchair.com'
+    apiProvider: DogecoinProviderName = 'blockchair.com'
   ): Promise<DogecoinUTXO[]> {
     const provider = this.providers[apiProvider];
     if (!provider) {
@@ -257,13 +323,34 @@ export class DogecoinBalanceChecker {
   }
 
   /**
+   * Get UTXOs with automatic fallback across providers
+   * @param address Dogecoin address
+   */
+  static async getUTXOsWithFallback(address: string): Promise<DogecoinUTXO[]> {
+    const errors: string[] = [];
+
+    for (const providerName of this.fallbackOrder) {
+      const provider = this.providers[providerName];
+      if (!provider) continue;
+
+      try {
+        return await provider.getUTXOs(address);
+      } catch (error) {
+        errors.push(`${providerName}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+    }
+
+    throw new Error(`All Dogecoin UTXO providers failed:\n${errors.join('\n')}`);
+  }
+
+  /**
    * Check multiple addresses in parallel
    * @param addresses Array of Dogecoin addresses
    * @param apiProvider API provider to use (default: blockchair.com)
    */
   static async checkMultipleDOGE(
     addresses: string[],
-    apiProvider: 'blockchair.com' | 'chain.so' | 'dogechain.info' = 'blockchair.com'
+    apiProvider: DogecoinProviderName = 'blockchair.com'
   ): Promise<DogecoinBalanceResult[]> {
     return await Promise.all(addresses.map(addr => this.checkDOGE(addr, apiProvider)));
   }

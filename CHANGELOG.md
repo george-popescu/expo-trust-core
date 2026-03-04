@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.12] - 2026-03-04
+
+### Fixed
+- **Version sync:** Aligned package.json, VERSION file, and CHANGELOG (were out of sync at 1.0.10/1.0.11)
+
+## [1.0.11] - 2026-03-04
+
+### Fixed
+- **EIP-712 fixed-size bytes (bytesN) encoding:** Right-pad to 32 bytes without hashing, matching the EIP-712 spec
+- **EIP-712 array type encoding:** Hash concatenated encoded elements for `T[]` types
+- **EIP-712 recursive dependent type encoding:** Correctly collect and sort dependent struct types for type hash string
+
+### Changed
+- iOS `EIP712Encoder.swift`: Added `isBytesN`, `encodeBytesN`, `isArrayType`, `encodeArray`, `collectDependentTypes`, `encodeSingleType` methods
+- Android `EIP712Encoder.kt`: Mirror of all Swift changes using Kotlin/BigInteger
+
+## [1.0.10] - 2026-02-08
+
+### Added
+- **Jest test suite:** Unit tests for Address, CoinType, Mnemonic, and TypedData modules
+- **JSDoc documentation:** Comprehensive JSDoc added to all public APIs across all modules
+
 ## [1.0.9] - 2025-12-10
 
 ### Fixed

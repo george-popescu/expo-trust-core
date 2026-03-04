@@ -70,7 +70,7 @@ export type { UnsignedBitcoinTransaction } from './src/helpers/BitcoinTransactio
 
 // P2 Blockchain Integration Helpers - Dogecoin
 export { DogecoinBalanceChecker } from './src/helpers/DogecoinBalanceChecker';
-export type { DogecoinBalanceResult, DogecoinUTXO, DogecoinAPIProvider } from './src/helpers/DogecoinBalanceChecker';
+export type { DogecoinBalanceResult, DogecoinUTXO, DogecoinAPIProvider, DogecoinProviderName } from './src/helpers/DogecoinBalanceChecker';
 export { DogecoinTransactionBuilder } from './src/helpers/DogecoinTransactionBuilder';
 export type { UnsignedDogecoinTransaction } from './src/helpers/DogecoinTransactionBuilder';
 
