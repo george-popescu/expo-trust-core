@@ -65,15 +65,65 @@ class EIP712Encoder {
     }
     
     private static func encodeType(type: String, types: [String: [Any]]) -> String {
+        let primaryEncoding = encodeSingleType(type: type, types: types)
+
+        // Collect all dependent struct types recursively
+        var visited = Set<String>()
+        visited.insert(type)
+        collectDependentTypes(type: type, types: types, visited: &visited)
+
+        // Remove the primary type from visited to get only dependents
+        visited.remove(type)
+
+        // Sort dependent types alphabetically and encode each one
+        let sortedDependents = visited.sorted()
+        let dependentEncodings = sortedDependents.map { depType -> String in
+            return encodeSingleType(type: depType, types: types)
+        }
+
+        return primaryEncoding + dependentEncodings.joined()
+    }
+
+    /// Recursively collect all struct types referenced by the given type's fields.
+    /// Uses a visited set to prevent infinite loops on circular references.
+    private static func collectDependentTypes(type: String, types: [String: [Any]], visited: inout Set<String>) {
+        guard let fields = types[type] as? [[String: String]] else {
+            return
+        }
+
+        for field in fields {
+            guard let fieldType = field["type"] else { continue }
+
+            // Strip array suffix if present (e.g., "TokenPermissions[]" -> "TokenPermissions")
+            let baseType: String
+            if fieldType.hasSuffix("[]") {
+                baseType = String(fieldType.dropLast(2))
+            } else {
+                baseType = fieldType
+            }
+
+            // Check if this base type is a struct defined in the types dictionary
+            guard types[baseType] != nil else { continue }
+
+            // Skip if already visited (prevents infinite loops on circular references)
+            guard !visited.contains(baseType) else { continue }
+
+            visited.insert(baseType)
+            collectDependentTypes(type: baseType, types: types, visited: &visited)
+        }
+    }
+
+    /// Encode a single type's field string (without dependent types).
+    private static func encodeSingleType(type: String, types: [String: [Any]]) -> String {
         guard let fields = types[type] as? [[String: String]] else {
             return "\(type)()"
         }
-        
+
         let fieldStrings = fields.compactMap { field -> String? in
             guard let name = field["name"], let type = field["type"] else { return nil }
             return "\(type) \(name)"
         }
-        
+
         return "\(type)(\(fieldStrings.joined(separator: ",")))"
     }
     

@@ -58,16 +58,65 @@ object EIP712Encoder {
     }
     
     private fun encodeType(type: String, types: JSONObject): String {
+        val primaryEncoding = encodeSingleType(type, types)
+
+        // Collect all dependent struct types recursively
+        val visited = mutableSetOf<String>()
+        visited.add(type)
+        collectDependentTypes(type, types, visited)
+
+        // Remove the primary type from visited to get only dependents
+        visited.remove(type)
+
+        // Sort dependent types alphabetically and encode each one
+        val sortedDependents = visited.sorted()
+        val dependentEncodings = sortedDependents.map { depType ->
+            encodeSingleType(depType, types)
+        }
+
+        return primaryEncoding + dependentEncodings.joinToString("")
+    }
+
+    /**
+     * Recursively collect all struct types referenced by the given type's fields.
+     * Uses a visited set to prevent infinite loops on circular references.
+     */
+    private fun collectDependentTypes(type: String, types: JSONObject, visited: MutableSet<String>) {
+        if (!types.has(type)) return
+        val fields = types.getJSONArray(type)
+
+        for (i in 0 until fields.length()) {
+            val field = fields.getJSONObject(i)
+            val fieldType = field.getString("type")
+
+            // Strip array suffix if present (e.g., "TokenPermissions[]" -> "TokenPermissions")
+            val baseType = if (fieldType.endsWith("[]")) fieldType.removeSuffix("[]") else fieldType
+
+            // Check if this base type is a struct defined in the types object
+            if (!types.has(baseType)) continue
+
+            // Skip if already visited (prevents infinite loops on circular references)
+            if (visited.contains(baseType)) continue
+
+            visited.add(baseType)
+            collectDependentTypes(baseType, types, visited)
+        }
+    }
+
+    /**
+     * Encode a single type's field string (without dependent types).
+     */
+    private fun encodeSingleType(type: String, types: JSONObject): String {
         val fields = types.getJSONArray(type)
         val fieldStrings = mutableListOf<String>()
-        
+
         for (i in 0 until fields.length()) {
             val field = fields.getJSONObject(i)
             val name = field.getString("name")
             val fieldType = field.getString("type")
             fieldStrings.add("$fieldType $name")
         }
-        
+
         return "$type(${fieldStrings.joinToString(",")})"
     }
     
