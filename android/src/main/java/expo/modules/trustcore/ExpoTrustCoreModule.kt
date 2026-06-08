@@ -184,10 +184,15 @@ class ExpoTrustCoreModule : Module() {
             normalizeEthereumSignature(signature)
           }
           CoinType.SOLANA -> {
-            val messageBytes = normalizedMessage.toByteArray(Charsets.UTF_8)
+            // Parse the message to its EXACT bytes: a "0x"-prefixed payload is
+            // hex-decoded (so the JS signer can hand us arbitrary/binary bytes as
+            // hex), a plain string is UTF-8 encoded. Same parser the Ethereum
+            // branch uses — Solana must NOT naively UTF-8 the (possibly 0x-hex)
+            // string, or it would sign the ASCII of the hex instead of the bytes.
+            val messageBytes = parseMessageBytes(normalizedMessage)
             val privateKey = wallet.getKey(coin, "m/44'/501'/$index'/0'")
             val signature = privateKey.sign(messageBytes, Curve.ED25519)
-            
+
             signature.toHexString()
           }
           else -> {

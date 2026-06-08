@@ -206,10 +206,14 @@ public class ExpoTrustCoreModule: Module {
         return self.normalizeEthereumSignature(signature)
         
       case .solana:
-        let solanaMessage = message.trimmingCharacters(in: .whitespacesAndNewlines)
+        // Sign the EXACT parsed message bytes (`normalizedMessage` = hex-decoded
+        // for a "0x"-prefixed payload, else UTF-8) — the same parser the Ethereum
+        // branch uses. Do NOT re-trim whitespace or re-UTF-8 the raw string:
+        // trimming corrupts messages with significant whitespace (e.g. SIWS), and
+        // naively UTF-8-ing a "0x"-hex payload would sign the ASCII of the hex.
         let privateKey = wallet.getKey(coin: coin, derivationPath: "m/44'/501'/\(index)'/0'")
-        let signature = privateKey.sign(digest: Data(solanaMessage.utf8), curve: .ed25519)!
-        
+        let signature = privateKey.sign(digest: normalizedMessage, curve: .ed25519)!
+
         return signature.hexString
         
       default:
